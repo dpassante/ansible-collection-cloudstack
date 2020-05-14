@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import traceback
+from distutils.version import LooseVersion
 
 from ansible.module_utils._text import to_text, to_native
 from ansible.module_utils.basic import missing_required_lib
@@ -212,6 +213,26 @@ class AnsibleCloudStack:
                 return my_dict[key]
             self.fail_json(msg="Something went wrong: %s not found" % key)
         return my_dict
+
+    @staticmethod
+    def loose_version(version):
+        return LooseVersion(version)
+
+    def cloudstack_version(self, operator=None, version=None):
+        current_version = self.get_capabilities('cloudstackversion')
+        current_lv = self.loose_version(current_version)
+        if not operator or not version:
+            return current_lv
+        else:
+            compare_lv = self.loose_version(version)
+            result = {
+                'gt': current_lv.__gt__(compare_lv),
+                'lt': current_lv.__lt__(compare_lv),
+                'ge': current_lv.__ge__(compare_lv),
+                'le': current_lv.__le__(compare_lv),
+                'eq': current_lv.__eq__(compare_lv),
+            }
+            return result[operator]
 
     def query_api(self, command, **args):
         try:

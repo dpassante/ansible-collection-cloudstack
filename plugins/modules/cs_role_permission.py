@@ -107,8 +107,6 @@ description:
   sample: Deny createVPC for users
 '''
 
-from distutils.version import LooseVersion
-
 from ansible.module_utils.basic import AnsibleModule
 from ..module_utils.cloudstack import (
     AnsibleCloudStack,
@@ -121,7 +119,7 @@ class AnsibleCloudStackRolePermission(AnsibleCloudStack):
 
     def __init__(self, module):
         super(AnsibleCloudStackRolePermission, self).__init__(module)
-        cloudstack_min_version = LooseVersion('4.9.2')
+        cloudstack_min_version = '4.9.2'
 
         self.returns = {
             'id': 'id',
@@ -132,14 +130,8 @@ class AnsibleCloudStackRolePermission(AnsibleCloudStack):
         }
         self.role_permission = None
 
-        self.cloudstack_version = self._cloudstack_ver()
-
-        if self.cloudstack_version < cloudstack_min_version:
+        if self.cloudstack_version('lt', cloudstack_min_version):
             self.fail_json(msg="This module requires CloudStack >= %s." % cloudstack_min_version)
-
-    def _cloudstack_ver(self):
-        capabilities = self.get_capabilities()
-        return LooseVersion(capabilities['cloudstackversion'])
 
     def _get_role_id(self):
         role = self.module.params.get('role')
@@ -270,7 +262,7 @@ class AnsibleCloudStackRolePermission(AnsibleCloudStack):
                 self.result['changed'] = True
 
                 if not self.module.check_mode:
-                    if self.cloudstack_version >= LooseVersion('4.11.0'):
+                    if self.cloudstack_version('ge', '4.11.0'):
                         self.query_api('updateRolePermission', **args)
                         role_perm = self._get_rule()
                     else:
