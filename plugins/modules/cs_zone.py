@@ -88,6 +88,11 @@ options:
     description:
       - Whether the zone is security group enabled or not.
     type: bool
+  zone_position:
+    description:
+      - The position of the zone (Cloudstack >= 4.13.0).
+    type: int
+    aliases: [ sort_key ]
 extends_documentation_fragment:
 - ngine_io.cloudstack.cloudstack
 '''
@@ -260,6 +265,16 @@ class AnsibleCloudStackZone(AnsibleCloudStack):
             args['allocationstate'] = state.capitalize()
         return args
 
+    def set_zone_position(self, zone_id):
+        args = {
+            'id': zone_id,
+            'sortkey': self.module.params.get('zone_position'),
+        }
+        if not self.module.check_mode:
+            res = self.query_api('updateZone', **args)
+            zone = res['zone']
+        return zone
+
     def get_zone(self):
         if not self.zone:
             args = {}
@@ -284,6 +299,9 @@ class AnsibleCloudStackZone(AnsibleCloudStack):
             zone = self._update_zone()
         else:
             zone = self._create_zone()
+
+        if self.module.params.get('zone_position') and self.cloudstack_version('ge', '4.13.0'):
+            zone = self.set_zone_position(zone['id'])
         return zone
 
     def _create_zone(self):
@@ -351,6 +369,7 @@ def main():
         securitygroups_enabled=dict(type='bool'),
         state=dict(choices=['present', 'enabled', 'disabled', 'absent'], default='present'),
         domain=dict(),
+        zone_position = dict(type='int', aliases=['sort_key']),
     ))
 
     module = AnsibleModule(
